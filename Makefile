@@ -22,6 +22,12 @@ clean realclean:; rm -rf $(GARBAGE)
 crow: class/crow.class
 $(PKGNAMES): %: class/$(PKG)/%.class
 
+$(TESTS): %: test/%.class
+	java -cp 'class;test' -ea $@
+
+test/%.class: test/%.java .class.dummy
+	javac -cp class $<
+
 .class.dummy: $(SOURCES)
 	javac -d class $(SOURCES)
 	touch $@
