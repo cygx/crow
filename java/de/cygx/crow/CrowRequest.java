@@ -54,21 +54,16 @@ public abstract class CrowRequest {
     }
 
     private static class PipeReq extends CrowRequest {
-        PipeReq(byte[] msg) { super(msg); }
-
-        boolean invalidAck(byte ack) {
-            return ack != ACK_PIPE;
-        }
-
+        PipeReq(byte[] message) { super(message); }
+        long size() { return 0; }
+        boolean invalidAck(byte ack) { return ack != ACK_PIPE; }
         void transfer(DataInputStream is, OutputStream os) {}
     }
 
     private static class RecordReq extends CrowRequest {
-        RecordReq(byte[] msg) { super(msg); }
-
-        boolean invalidAck(byte ack) {
-            return ack != ACK_RECORD;
-        }
+        RecordReq(byte[] message) { super(message); }
+        long size() { return CrowRecord.SIZE; }
+        boolean invalidAck(byte ack) { return ack != ACK_RECORD; }
 
         void transfer(DataInputStream is, OutputStream os)
                 throws IOException {
@@ -80,15 +75,14 @@ public abstract class CrowRequest {
         private final int checksum;
         private final long size;
 
-        BlobReq(byte[] msg, int checksum, long size) {
-            super(msg);
+        BlobReq(byte[] message, int checksum, long size) {
+            super(message);
             this.checksum = checksum;
             this.size = size;
         }
 
-        boolean invalidAck(byte ack) {
-            return ack != ACK_BLOB;
-        }
+        long size() { return size; }
+        boolean invalidAck(byte ack) { return ack != ACK_BLOB; }
 
         void transfer(DataInputStream is, OutputStream os) throws IOException {
             if(checkedTransfer(is, os, size) != checksum)
@@ -99,14 +93,13 @@ public abstract class CrowRequest {
     private static class ChunkReq extends CrowRequest {
         private final long length;
 
-        ChunkReq(byte[] msg, long length) {
-            super(msg);
+        ChunkReq(byte[] message, long length) {
+            super(message);
             this.length = length;
         }
 
-        boolean invalidAck(byte ack) {
-            return ack != ACK_CHUNK;
-        }
+        long size() { return length + 4; }
+        boolean invalidAck(byte ack) { return ack != ACK_CHUNK; }
 
         void transfer(DataInputStream is, OutputStream os) throws IOException {
             int checksum = checkedTransfer(is, os, length);
@@ -127,26 +120,26 @@ public abstract class CrowRequest {
         if(bytes.length > 0xFFFF)
             throw new IllegalArgumentException("too long");
 
-        byte[] msg = new byte[bytes.length + 3];
-        msg[0] = REQ_RECORD;
-        msg[1] = (byte)(bytes.length >> 8);
-        msg[2] = (byte)(bytes.length);
-        System.arraycopy(bytes, 0, msg, 3, bytes.length);
+        byte[] message = new byte[bytes.length + 3];
+        message[0] = REQ_RECORD;
+        message[1] = (byte)(bytes.length >> 8);
+        message[2] = (byte)(bytes.length);
+        System.arraycopy(bytes, 0, message, 3, bytes.length);
 
-        return new RecordReq(msg);
+        return new RecordReq(message);
     }
 
     public static CrowRequest blob(int id, int checksum, long size) {
-        byte[] msg = {
+        byte[] message = {
             REQ_BLOB,
             (byte)(id >> 24), (byte)(id >> 16), (byte)(id >> 8), (byte)id,
         };
 
-        return new BlobReq(msg, checksum, size);
+        return new BlobReq(message, checksum, size);
     }
 
     public static CrowRequest chunk(int id, long offset, long length) {
-        byte[] msg = {
+        byte[] message = {
             REQ_CHUNK,
             (byte)(id >> 24), (byte)(id >> 16), (byte)(id >> 8), (byte)id,
             (byte)(offset >> 56), (byte)(offset >> 48),
@@ -159,17 +152,18 @@ public abstract class CrowRequest {
             (byte)(length >>  8), (byte)(length),
         };
 
-        return new ChunkReq(msg, length);
+        return new ChunkReq(message, length);
     }
 
-    private final byte[] msg;
+    public final byte[] message;
 
+    abstract long size();
     abstract boolean invalidAck(byte ack);
     abstract void transfer(DataInputStream is, OutputStream dest)
         throws IOException;
 
-    CrowRequest(byte[] msg) {
-        this.msg = msg;
+    CrowRequest(byte[] message) {
+        this.message = message;
     }
 
     public boolean receive(DataInputStream is, OutputStream os)
@@ -183,10 +177,6 @@ public abstract class CrowRequest {
         return true;
     }
 
-    public void sendTo(CrowPipe pipe) throws IOException {
-        pipe.out().write(msg);
-    }
-
     public boolean sendTo(InetSocketAddress address, OutputStream dest)
             throws IOException {
         try(Socket socket = new Socket()) {
@@ -194,7 +184,7 @@ public abstract class CrowRequest {
 
             DataOutputStream os = new DataOutputStream(socket.getOutputStream());
             os.writeInt(MAGIC);
-            os.write(msg);
+            os.write(message);
             os.close();
 
             DataInputStream is = new DataInputStream(socket.getInputStream());
@@ -206,7 +196,7 @@ public abstract class CrowRequest {
     }
 
     public byte[] sendTo(InetSocketAddress address) throws IOException {
-        ByteArrayOutputStream bs = new ByteArrayOutputStream();
+        ByteArrayOutputStream bs = new ByteArrayOutputStream((int)size());
         return sendTo(address, bs) ? bs.toByteArray() : null;
     }
 }
