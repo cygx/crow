@@ -5,7 +5,7 @@ SOURCES := java/crow.java $(PKGSOURCES)
 CLASSES := $(SOURCES:java/%.java=class/%.class)
 GARBAGE := class/*
 
-build:; javac -d class $(SOURCES)
+build: .dummy
 jar: crow.jar
 
 realclean: GARBAGE += crow.jar
@@ -13,6 +13,10 @@ clean realclean:; rm -rf $(GARBAGE)
 
 crow: class/crow.class
 $(PKGNAMES): %: class/$(PKG)/%.class
+
+.dummy: $(SOURCES)
+	javac -d class $(SOURCES)
+	touch $@
 
 $(CLASSES): class/%.class: java/%.java $(SOURCES)
 	javac -sourcepath java -d class $<
