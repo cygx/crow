@@ -7,6 +7,11 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 public abstract class CrowRequest {
     private static final int BUFFER_SIZE = 8192;
+    private static final OutputStream NULL_OUT = new OutputStream() {
+        public void write(byte[] b) {}
+        public void write(byte[] b, int off, int len) {}
+        public void write(int b) {}
+    };
 
     static void transfer(InputStream is, OutputStream os, long size)
             throws IOException {
@@ -173,11 +178,11 @@ public abstract class CrowRequest {
         if(invalidAck(ack))
             throw new IOException("invalid ack");
 
-        transfer(is, os);
+        transfer(is, os == null ? NULL_OUT : os);
         return true;
     }
 
-    public boolean sendTo(InetSocketAddress address, OutputStream dest)
+    public boolean sendTo(SocketAddress address, OutputStream dest)
             throws IOException {
         try(Socket socket = new Socket()) {
             socket.connect(address);
@@ -185,7 +190,7 @@ public abstract class CrowRequest {
             DataOutputStream os = new DataOutputStream(socket.getOutputStream());
             os.writeInt(MAGIC);
             os.write(message);
-            os.close();
+            socket.shutdownOutput();
 
             DataInputStream is = new DataInputStream(socket.getInputStream());
             if(is.readInt() != MAGIC)
@@ -195,7 +200,7 @@ public abstract class CrowRequest {
         }
     }
 
-    public byte[] sendTo(InetSocketAddress address) throws IOException {
+    public byte[] sendTo(SocketAddress address) throws IOException {
         ByteArrayOutputStream bs = new ByteArrayOutputStream((int)size());
         return sendTo(address, bs) ? bs.toByteArray() : null;
     }
