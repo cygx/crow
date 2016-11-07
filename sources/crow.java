@@ -103,8 +103,7 @@ public class crow {
     static void repo() {
         final int CMD = 1;
 
-        String cmd = args[CMD];
-        if(args.length > 1) switch(cmd) {
+        if(args.length > 1) switch(args[CMD]) {
             case "create":
             repo_create();
             return;
@@ -126,7 +125,8 @@ public class crow {
             return;
 
             default:
-            if(cmd.startsWith("-")) {
+            if(args[CMD].startsWith("-")) {
+                String cmd = args[CMD];
                 for(int i = 1; i < cmd.length(); ++i) {
                     char c = cmd.charAt(i);
                     if("clsrp".indexOf(c) < 0)
