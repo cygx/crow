@@ -29,4 +29,11 @@ public class CrowRecord {
         this.size = size;
         this.timestamp = timestamp;
     }
+
+    public void writeTo(DataOutputStream os) throws IOException {
+        os.writeInt(id);
+        os.writeInt(checksum);
+        os.writeLong(size);
+        os.writeLong(timestamp);
+    }
 }
