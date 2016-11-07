@@ -5,7 +5,7 @@ SOURCES := sources/crow.java $(PKGSOURCES)
 CLASSES := $(SOURCES:sources/%.java=classes/%.class)
 TESTSOURCES := $(wildcard tests/*.java)
 TESTS := $(sort $(patsubst tests/%.java,%,$(TESTSOURCES)))
-GARBAGE := .*.dummy classes/* tests/*.class
+GARBAGE := .*.dummy classes/* tests/*.class tests/*.tmp
 
 build: .classes.dummy
 
