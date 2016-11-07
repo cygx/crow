@@ -37,7 +37,7 @@ tests/%.class: tests/%.java .classes.dummy
 	touch $@
 
 $(CLASSES): classes/%.class: sources/%.java $(SOURCES)
-	javac -sourcepath java -d classes $<
+	javac -sourcepath sources -d classes $<
 
 crow.jar: .classes.dummy
 	cd classes; jar cfe ../$@ crow *
