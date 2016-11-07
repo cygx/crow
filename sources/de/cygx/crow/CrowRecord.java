@@ -30,6 +30,10 @@ public class CrowRecord {
         this.timestamp = timestamp;
     }
 
+    public CrowRecord clone(int id) {
+        return new CrowRecord(id, checksum, size, timestamp);
+    }
+
     public void writeTo(DataOutputStream os) throws IOException {
         os.writeInt(id);
         os.writeInt(checksum);

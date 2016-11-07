@@ -30,11 +30,11 @@ tests/%.class: tests/%.java .classes.dummy
 
 .classes.dummy: $(SOURCES)
 	javac -d classes $(SOURCES)
-	touch $@
+	@touch $@
 
 .tests.dummy: .classes.dummy $(TESTSOURCES)
 	javac -cp classes $(TESTSOURCES)
-	touch $@
+	@touch $@
 
 $(CLASSES): classes/%.class: sources/%.java $(SOURCES)
 	javac -sourcepath sources -d classes $<

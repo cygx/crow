@@ -10,59 +10,107 @@ import static java.nio.file.StandardOpenOption.*;
 import static java.nio.file.attribute.PosixFilePermission .*;
 
 public class crow {
-    static String[] args;
-    static final int BLOCK_SIZE = 8192;
+    static class Death extends RuntimeException {
+        public Death() { super("Died."); }
+        public Death(Throwable cause) { super(cause); }
+        public Death(String msg) { super(msg); }
+
+        public String toString() {
+            Throwable cause = getCause();
+            return cause != null
+                ? cause.getClass().getSimpleName() + ": " + cause.getMessage()
+                : getMessage();
+        }
+    }
+
     static final FileAttribute<Set<PosixFilePermission>>
         DEFAULT_PERMISSIONS = filePermissions("rw-rw-r--");
+
+    static String[] args;
+    static boolean shelled;
 
     static FileAttribute<Set<PosixFilePermission>> filePermissions(String s) {
         return PosixFilePermissions.asFileAttribute(
             PosixFilePermissions.fromString(s));
     }
 
-    static void println(PrintStream ps, Exception e) {
-        e.printStackTrace(ps);
-        //ps.println(e.getClass().getSimpleName() + ": " + e.getMessage());
+    static void say(Object o) { System.out.println(o); }
+    static void cry(Object o) { System.err.println(o); }
+
+    static void die()            { throw new Death(); }
+    static void die(Throwable t) { throw new Death(t); }
+    static void die(Object o)    { throw new Death(o.toString()); }
+
+    static void usage(String... msg) {
+        String[] lines = new String[msg.length];
+        lines[0] = "Usage: " + (shelled ? "" : "crow ") + msg[0];
+        for(int i = 1; i < msg.length; ++i)
+            lines[i] = "       " + (shelled ? "" : "crow ") + msg[i];
+
+        die(String.join("\n", lines));
     }
 
-    static void println(PrintStream ps, Object o) {
-        ps.println(o);
+    static void usage(boolean check, String... msg) {
+        if(!check) usage(msg);
     }
-
-    static void say(Exception e) { println(System.out, e); }
-    static void say(Object o)    { println(System.out, o); }
-
-    static void cry(Exception e) { println(System.err, e); }
-    static void cry(Object o)    { println(System.err, o); }
-
-    static void die()            { System.exit(1); }
-    static void die(Exception e) { cry(e); die(); }
-    static void die(Object o)    { cry(o); die(); }
 
     public static void main(String[] args) {
         crow.args = args;
-
-        if(args.length == 0) {
-            die("TODO");
+        try { process(); }
+        catch(Death death) {
+            cry(death);
+            System.exit(1);
         }
+    }
 
-        switch(args[0]) {
+    static void process() {
+        if(args.length > 0) switch(args[0]) {
             case "repo":
             repo();
             return;
+
+            case "-s":
+            case "shell":
+            shell();
+            return;
         }
 
-        die("TODO");
+        usage("[shell|repo] <...>", "-s");
+    }
+
+    static void shell() {
+        usage(args.length == 1, "[shell|-s]");
+
+        if(shelled) die(new IllegalStateException("already in shell"));
+        shelled = true;
+
+        BufferedReader reader = new BufferedReader(
+            new InputStreamReader(System.in));
+
+        String line;
+        try {
+            System.out.print("> ");
+            while((line = reader.readLine()) != null) {
+                args = line.trim().split("\\s+");
+                try { process(); }
+                catch(Death death) { cry(death); }
+                System.out.print("\n> ");
+            }
+        }
+        catch(IOException e) { die(e); }
     }
 
     static void repo() {
-        if(args.length == 1) {
-            die(new Exception("TODO"));
-        }
+        final int CMD = 1;
 
-        switch(args[1]) {
+        String cmd = args[CMD];
+        if(args.length > 1) switch(cmd) {
             case "create":
             repo_create();
+            return;
+
+            case "list":
+            repo_list();
             return;
 
             case "store":
@@ -72,28 +120,59 @@ public class crow {
             case "register":
             repo_register();
             return;
+
+            case "prune":
+            repo_prune();
+            return;
+
+            default:
+            if(cmd.startsWith("-")) {
+                for(int i = 1; i < cmd.length(); ++i) {
+                    char c = cmd.charAt(i);
+                    if("clsrp".indexOf(c) < 0)
+                        die(new IllegalArgumentException("-" + c));
+
+                    die("TODO");
+                }
+            }
         }
 
-        die("TODO");
+        usage(
+            "repo [create|list|store|register|prune] <...>",
+            "repo -{clsrp} <...>"
+        );
+    }
+
+    static void repo_list() {
+        final int REPO = 2;
+        usage(args.length == 3, "repo [list|-l] <REPO>");
+
+        CrowRepository repo;
+        try(FileChannel channel = FileChannel.open(Paths.get(args[REPO]))) {
+             repo = (CrowRepository)new ObjectInputStream(
+                Channels.newInputStream(channel)).readObject();
+        }
+        catch(ClassCastException e) { die(e); }
+        catch(ClassNotFoundException e) { die(e); }
+        catch(IOException e) { die(e); }
     }
 
     static void repo_create() {
-        if(args.length != 3) die(
-            "usage: crow repo create <FILE>"
-        );
+        final int REPO = 2;
+        usage(args.length == 3, "repo create <REPO>");
 
         try {
             FileChannel channel = null;
             try {
                 channel = FileChannel.open(
-                    Paths.get(args[2]),
+                    Paths.get(args[REPO]),
                     EnumSet.of(CREATE_NEW, WRITE),
                     DEFAULT_PERMISSIONS
                 );
             }
             catch(UnsupportedOperationException e) {
                 channel = FileChannel.open(
-                    Paths.get(args[2]),
+                    Paths.get(args[REPO]),
                     EnumSet.of(CREATE_NEW, WRITE)
                 );
             }
@@ -110,13 +189,11 @@ public class crow {
         catch(IOException e) { die(e); }
     }
 
-    static void repo_store() {
-        if(args.length != 5) die(
-            "usage: crow repo store <REPO> <NAME> <PATH>"
-        );
+    static void repo_add(boolean load) {
+        final int REPO = 2, NAME = 3, PATH = 4;
 
         try(
-            FileChannel channel = FileChannel.open(Paths.get(args[2]),
+            FileChannel channel = FileChannel.open(Paths.get(args[REPO]),
                 EnumSet.of(READ, WRITE));
             FileLock lock = channel.lock();
         ) {
@@ -125,6 +202,9 @@ public class crow {
 
             CrowRepository repo = (CrowRepository)is.readObject();
             channel.truncate(0);
+
+            repo.add(args[NAME], new File(args[PATH]), load);
+            repo.update();
 
             ObjectOutputStream os = new ObjectOutputStream(
                 Channels.newOutputStream(channel));
@@ -137,9 +217,19 @@ public class crow {
         catch(IOException e) { die(e); }
     }
 
+    static void repo_store() {
+        usage(args.length == 5, "repo store <REPO> <NAME> <PATH>");
+        repo_add(true);
+    }
+
     static void repo_register() {
-        if(args.length != 5) die(
-            "usage: crow repo register <REPO> <NAME> <PATH>"
-        );
+        usage(args.length == 5, "repo register <REPO> <NAME> <PATH>");
+        repo_add(false);
+    }
+
+    static void repo_prune() {
+        final int REPO = 2;
+        usage(args.length == 3, "repo prune <REPO>");
+        die("TODO");
     }
 }
