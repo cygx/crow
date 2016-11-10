@@ -61,4 +61,4 @@ launcher/win32/res-w64.o: launcher/win32/res.rc launcher/win32/glider.ico
 crow-w64.exe: CC := x86_64-w64-mingw32-gcc
 crow-w64.exe: WINDRES := x86_64-w64-mingw32-windres -F pe-x86-64
 crow-w64.exe: crow-%.exe: launcher/win32/main-%.o launcher/win32/res-%.o
-	$(CC) -o $@ $^
+	$(CC) -s -o $@ $^
