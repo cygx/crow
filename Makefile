@@ -1,7 +1,7 @@
 PKG := de/cygx/crow
 PKGSOURCES := $(wildcard sources/$(PKG)/*.java)
 PKGNAMES := $(patsubst sources/$(PKG)/%.java,%,$(PKGSOURCES))
-SOURCES := sources/crow.java $(PKGSOURCES)
+SOURCES := $(wildcard sources/*.java) $(PKGSOURCES)
 CLASSES := $(SOURCES:sources/%.java=classes/%.class)
 TESTSOURCES := $(wildcard tests/*.java)
 TESTS := $(sort $(patsubst tests/%.java,%,$(TESTSOURCES)))
@@ -19,7 +19,7 @@ jar: crow.jar
 realclean: GARBAGE += crow.jar
 clean realclean:; rm -rf $(GARBAGE)
 
-crow: classes/crow.class
+crow Tree: %: classes/%.class
 $(PKGNAMES): %: classes/$(PKG)/%.class
 
 $(TESTS): %: tests/%.class
