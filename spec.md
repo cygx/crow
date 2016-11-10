@@ -69,7 +69,7 @@ body = [ <off.8> <len.8> ]+
 
 ### Digest Requests
 
-Requests a message digest for a given resource. The body contains a comma-separated list of algorithms, from which the server will choose as it sees fit.
+Requests a message digest for a given resource. The body contains a comma-separated list of algorithms, from which the server will choose as it sees fit. The default algorithm SHA-256 is always present and does not need to be listed explicitly.
 
 ```
 head = [ <id.4> <len.2> ]+ <size.2>
@@ -123,7 +123,7 @@ data = <raw.?>
 
 ### Digest Responses
 
-Transfer of a CRC32 checksum is optional. The used algorithm is identified by its index in the request list.
+Transfer of a CRC32 checksum is optional. The used algorithm is identified by its index in the request list, where a value of 0 corresponds to the dafault algorithm SHA-256.
 
 ```
 data = <algorithm.1> <digest.?>
