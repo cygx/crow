@@ -69,6 +69,14 @@ public class Tree<K, V> {
             firstChild.nextSibling = sibling;
             return node;
         }
+
+        public void aggregateLeafValues(List<V> values) {
+            if(firstChild == null) values.add(value);
+            else for(Node<K, V> child = firstChild; child != null;
+                    child = child.nextSibling) {
+                child.aggregateLeafValues(values);
+            }
+        }
     }
 
     private Node<K, V> root = new Node<K, V>(null);
@@ -82,10 +90,7 @@ public class Tree<K, V> {
     @SafeVarargs
     public final V get(K... keys) throws NoSuchElementException {
         Node<K, V> node = getNode(new Path<K>(keys));
-        if(node == null)
-            throw new NoSuchElementException();
-
-        return node.value;
+        return node != null ? node.value : null;
     }
 
     public void put(V value) {
