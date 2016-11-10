@@ -33,8 +33,17 @@ class crow {
         register(strings("shell"), strings(),
             () -> shell());
 
+        register(strings("server", "abort"), strings("PORT"),
+            () -> send(intArg("PORT"), "abort"));
+
+        register(strings("server", "quit"), strings("PORT"),
+            () -> send(intArg("PORT"), "quit"));
+
         register(strings("server", "shutdown"), strings("PORT"),
-            () -> shutdownServer(intArg("PORT")));
+            () -> send(intArg("PORT"), "shutdown"));
+
+        register(strings("server", "start"), strings("PORT"),
+            () -> send(intArg("PORT"), "start"));
 
         register(strings("server", "bind"), strings("PORT", "HOST:PORT"),
             () -> bindServer(intArg("PORT"), stringArg("HOST:PORT")));
@@ -60,6 +69,20 @@ class crow {
 
     static void register(String[] cmds, String[] args, Runnable action) {
         cmdTree.put(new Cmd(cmds, args, action), cmds);
+    }
+
+    static void send(int port, String msg) {
+        try { try(Socket socket = new Socket(LOOPBACK, port)) {
+            socket.getOutputStream().write((msg + '\n').getBytes(UTF_8));
+            socket.shutdownOutput();
+
+            String response = new BufferedReader(new InputStreamReader(
+                socket.getInputStream(), UTF_8)).readLine();
+            if(response != null)
+                System.out.println("Response: " + response);
+            socket.shutdownInput();
+        } }
+        catch(IOException e) { die(e); }
     }
 
     public static void main(String[] args) {
@@ -113,10 +136,29 @@ class crow {
 
         String line;
         try {
+            System.out.println(
+                "Note: Press <ENTER> to see the list of commands\n" +
+                "      Append '&' to start commands concurrently"
+            );
+
             System.out.print("> ");
             while((line = reader.readLine()) != null) {
-                main(line.trim().split("\\s+"));
-                System.out.print("\n> ");
+                line = line.trim();
+                if(!line.endsWith("&")) main(line.split("\\s+"));
+                else {
+                    int pos = line.length() - 1;
+                    final String[] args = line.substring(0, pos).split("\\s+");
+                    new Thread(() -> {
+                        long id = Thread.currentThread().getId();
+                        System.out.println("Thread " + id + ": started");
+                        main(args);
+                        System.out.println("Thread " + id + ": done");
+                    }).start();
+                }
+
+                try { Thread.sleep(100); }
+                catch(InterruptedException e) {}
+                System.out.print("> ");
             }
         }
         catch(IOException e) { die(e); }
@@ -160,25 +202,7 @@ class crow {
         }
         catch(UnknownHostException e) { die(e); }
 
-        String msg = "bind " + address.getAddress().getHostAddress() + " "
-            + address.getPort() + "\n";
-
-        try { try(Socket socket = new Socket(LOOPBACK, port)) {
-            socket.getOutputStream().write(msg.getBytes(UTF_8));
-            socket.shutdownOutput();
-            System.out.println(new BufferedReader(new InputStreamReader(
-                socket.getInputStream(), UTF_8)).readLine());
-            socket.shutdownInput();
-        } }
-        catch(IOException e) { die(e); }
-    }
-
-    static void shutdownServer(int port) {
-        String msg = "shutdown\n";
-        try { try(Socket socket = new Socket(LOOPBACK, port)) {
-            socket.getOutputStream().write(msg.getBytes(UTF_8));
-            socket.shutdownOutput();
-        } }
-        catch(IOException e) { die(e); }
+        send(port, String.format("bind %s %d",
+            address.getAddress().getHostAddress(), address.getPort()));
     }
 }
