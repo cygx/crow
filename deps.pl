@@ -65,7 +65,12 @@ print "\n\n", join(' ', map { $_->{class} } @classes),
 find \&gather, 'tests';
 @classes = @classes{sort keys %classes};
 
-print "\nprove: .tests.dummy\n\tprove -emake",
+print "\nprove prove-v: MAKEFLAGS += --no-print-directory\n";
+
+print "\nprove: .tests.dummy\n\tprove -e\$(MAKE)",
+    map({ ' '.$_->{name} } @classes), "\n";
+
+print "\nprove-v: .tests.dummy\n\tprove -v -e\$(MAKE)",
     map({ ' '.$_->{name} } @classes), "\n";
 
 print "\nrun-tests: .tests.dummy\n",
