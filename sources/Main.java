@@ -4,7 +4,7 @@ import java.net.*;
 import java.util.*;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-class crow {
+class Main {
     static final InetAddress LOOPBACK = InetAddress.getLoopbackAddress();
     static boolean shelled;
 

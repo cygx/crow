@@ -1,7 +1,2 @@
-__*
-*.dummy
-*.class
-*.jar
-*.tmp
-*.o
-*.exe
+/*.dummy
+/*.jar
