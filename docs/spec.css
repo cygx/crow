@@ -1,0 +1,19 @@
+body {
+    font-family: sans-serif;
+    max-width: 40em;
+    margin: 2em auto;
+}
+
+pre {
+    background: #eee;
+    border: 1px solid #aaa;
+    padding: 0.5em;
+}
+
+th {
+    padding: 0.5em;
+}
+
+td, th {
+    border: 1px solid #aaa;
+}

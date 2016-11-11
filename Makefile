@@ -4,15 +4,21 @@ tests: .tests.dummy
 
 jar: crow.jar
 
-deps:; perl deps.pl >deps.mk
+html: docs/spec.html
+
+check: run-tests
 
 clean:; rm -rf classes/* tests/*.class tests/*.tmp .*.dummy
 realclean: clean
-	rm -rf crow.jar
+	rm -rf crow.jar docs/*.html
+
+deps:; perl deps.pl >deps.mk
 
 crow.jar: .classes.dummy
 	cd classes; jar cfe ../$@ Main *
 
-check: run-tests
+docs/spec.html: docs/spec.meta spec.md
+	multimarkdown --nolabels -o $@ $^
+	-@chmod -x $@
 
 include deps.mk
