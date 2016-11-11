@@ -52,7 +52,7 @@ public interface Test {
             }
             catch(InvocationTargetException e) {
                 Throwable cause = e.getCause();
-                System.err.printf(" %s: %s\n",
+                out.printf(" %s: %s\n",
                     cause.getClass().getSimpleName(),
                     cause.getMessage());
                 out.println("not " + ok);
