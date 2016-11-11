@@ -65,6 +65,9 @@ print "\n\n", join(' ', map { $_->{class} } @classes),
 find \&gather, 'tests';
 @classes = @classes{sort keys %classes};
 
+print "\nprove: .tests.dummy\n\tprove -emake",
+    map({ ' '.$_->{name} } @classes), "\n";
+
 print "\nrun-tests: .tests.dummy\n",
     map({ "\tjava -cp 'classes${sep}tests' -ea ".$_->{name}."\n" } @classes);
 
