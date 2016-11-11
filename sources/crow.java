@@ -8,6 +8,10 @@ class crow {
     static final InetAddress LOOPBACK = InetAddress.getLoopbackAddress();
     static boolean shelled;
 
+    static interface Shellable {
+        void eval(String... args);
+    }
+
     static class Cmd {
         String[] cmds;
         String[] args;
@@ -31,7 +35,22 @@ class crow {
 
     static {
         register(strings("shell"), strings(),
-            () -> shell());
+            () -> shell((args) -> main(args)));
+
+        register(strings("server", "shell"), strings("PORT"),
+            () -> shell((args) -> {
+                String[] realArgs;
+                if(args.length == 0) realArgs = new String[] { "server" };
+                else {
+                    realArgs = new String[args.length + 2];
+                    realArgs[0] = "server";
+                    realArgs[1] = args[0];
+                    realArgs[2] = argMap.get("PORT");
+                    for(int i = 1; i < args.length; ++i)
+                        realArgs[i + 2] = args[i];
+                }
+                main(realArgs);
+            }));
 
         register(strings("server", "abort"), strings("PORT"),
             () -> send(intArg("PORT"), "abort"));
@@ -50,6 +69,21 @@ class crow {
 
         register(strings("server", "init"), strings("PORT"),
             () -> initServer(intArg("PORT")));
+
+        register(strings("repo", "shell"), strings("REPO"),
+            () -> shell((args) -> {
+                String[] realArgs;
+                if(args.length == 0) realArgs = new String[] { "repo" };
+                else {
+                    realArgs = new String[args.length + 2];
+                    realArgs[0] = "repo";
+                    realArgs[1] = args[0];
+                    realArgs[2] = argMap.get("REPO");
+                    for(int i = 1; i < args.length; ++i)
+                        realArgs[i + 2] = args[i];
+                }
+                main(realArgs);
+            }));
 
         register(strings("repo", "prune"), strings("REPO"),
             () -> pruneRepo(stringArg("REPO")));
@@ -85,7 +119,7 @@ class crow {
         catch(IOException e) { die(e); }
     }
 
-    public static void main(String[] args) {
+    public static void main(String... args) {
         try {
             Tree.Path<String> path = cmdTree.path(args);
             Tree.Node<String, Cmd> node = cmdTree.consume(path);
@@ -127,31 +161,31 @@ class crow {
         }
     }
 
-    static void shell() {
+    static void shell(Shellable shellable) {
         if(shelled) die(new IllegalStateException("already in shell"));
         else shelled = true;
 
         BufferedReader reader = new BufferedReader(
             new InputStreamReader(System.in));
 
-        String line;
         try {
             System.out.println(
                 "Note: Press <ENTER> to see the list of commands\n" +
                 "      Append '&' to start commands concurrently"
             );
 
+            String line;
             System.out.print("> ");
             while((line = reader.readLine()) != null) {
                 line = line.trim();
-                if(!line.endsWith("&")) main(line.split("\\s+"));
+                if(!line.endsWith("&")) shellable.eval(line.split("\\s+"));
                 else {
                     int pos = line.length() - 1;
                     final String[] args = line.substring(0, pos).split("\\s+");
                     new Thread(() -> {
                         long id = Thread.currentThread().getId();
                         System.out.println("Thread " + id + ": started");
-                        main(args);
+                        shellable.eval(args);
                         System.out.println("Thread " + id + ": done");
                     }).start();
                 }
