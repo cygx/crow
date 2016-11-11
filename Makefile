@@ -1,3 +1,5 @@
+MMDFLAGS := -f
+
 classes: .classes.dummy
 
 tests: .tests.dummy
@@ -5,6 +7,9 @@ tests: .tests.dummy
 jar: crow.jar
 
 html: docs/spec.html
+
+latex: MMDFLAGS += -t latex
+latex: docs/spec.tex
 
 check: run-tests
 
@@ -17,8 +22,8 @@ deps:; perl deps.pl >deps.mk
 crow.jar: .classes.dummy
 	cd classes; jar cfe ../$@ Main *
 
-docs/spec.html: docs/spec.meta spec.md
-	multimarkdown --nolabels -o $@ $^
+docs/spec.html docs/spec.tex: docs/spec.%: docs/spec-%.meta spec.md
+	multimarkdown $(MMDFLAGS) -o $@ $^
 	-@chmod -x $@
 
 include deps.mk
