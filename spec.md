@@ -97,7 +97,7 @@ The response type pertains to individual requests.
 
 ### Record Responses
 
-Transfer of a CRC32 checksum is optional.
+Transfer of a CRC32 checksum is not recommended.
 
 ```
 data = <id.4> <crc.4> <size.8> <timestamp.8>
@@ -105,7 +105,7 @@ data = <id.4> <crc.4> <size.8> <timestamp.8>
 
 ### Blob Responses
 
-Transfer of a CRC32 checksum is optional, but not recommended as it has already been transferred as part of the record.
+Transfer of a CRC32 checksum is not recommended as it has already been transferred as part of the record.
 
 ```
 data = <raw.?>
@@ -114,7 +114,7 @@ data = <raw.?>
 
 ### Chunk Responses
 
-Transfer of a CRC32 checksum is optional, but recommended.
+Transfer of a CRC32 checksum is recommended.
 
 ```
 data = <raw.?>
