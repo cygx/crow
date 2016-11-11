@@ -34,24 +34,6 @@ class Main {
     static Map<String, String> argMap = new HashMap<String, String>();
 
     static {
-        register(strings("shell"), strings(),
-            () -> shell((args) -> main(args)));
-
-        register(strings("server", "shell"), strings("PORT"),
-            () -> shell((args) -> {
-                String[] realArgs;
-                if(args.length == 0) realArgs = new String[] { "server" };
-                else {
-                    realArgs = new String[args.length + 2];
-                    realArgs[0] = "server";
-                    realArgs[1] = args[0];
-                    realArgs[2] = argMap.get("PORT");
-                    for(int i = 1; i < args.length; ++i)
-                        realArgs[i + 2] = args[i];
-                }
-                main(realArgs);
-            }));
-
         register(strings("server", "abort"), strings("PORT"),
             () -> send(intArg("PORT"), "abort"));
 
@@ -70,7 +52,28 @@ class Main {
         register(strings("server", "init"), strings("PORT"),
             () -> initServer(intArg("PORT")));
 
-        register(strings("repo", "shell"), strings("REPO"),
+        register(strings("server", "repl"), strings("PORT"),
+            () -> shell((args) -> {
+                String[] realArgs;
+                if(args.length == 0) realArgs = new String[] { "server" };
+                else {
+                    realArgs = new String[args.length + 2];
+                    realArgs[0] = "server";
+                    realArgs[1] = args[0];
+                    realArgs[2] = argMap.get("PORT");
+                    for(int i = 1; i < args.length; ++i)
+                        realArgs[i + 2] = args[i];
+                }
+                main(realArgs);
+            }));
+
+        register(strings("repo", "prune"), strings("REPO"),
+            () -> pruneRepo(stringArg("REPO")));
+
+        register(strings("repo", "create"), strings("REPO"),
+            () -> createRepo(stringArg("REPO")));
+
+        register(strings("repo", "repl"), strings("REPO"),
             () -> shell((args) -> {
                 String[] realArgs;
                 if(args.length == 0) realArgs = new String[] { "repo" };
@@ -85,11 +88,8 @@ class Main {
                 main(realArgs);
             }));
 
-        register(strings("repo", "prune"), strings("REPO"),
-            () -> pruneRepo(stringArg("REPO")));
-
-        register(strings("repo", "create"), strings("REPO"),
-            () -> createRepo(stringArg("REPO")));
+        register(strings("repl"), strings(),
+            () -> shell((args) -> main(args)));
     }
 
     static void die() { throw new RuntimeException(); }
@@ -184,9 +184,9 @@ class Main {
                     final String[] args = line.substring(0, pos).split("\\s+");
                     new Thread(() -> {
                         long id = Thread.currentThread().getId();
-                        System.out.println("Thread " + id + ": started");
+                        System.out.println("[" + id + "] started...");
                         shellable.eval(args);
-                        System.out.println("Thread " + id + ": done");
+                        System.out.println("[" + id + "] done.");
                     }).start();
                 }
 
