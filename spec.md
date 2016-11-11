@@ -51,7 +51,7 @@ body = X
 
 ### Chunk Requests
 
-Requests a chunk of a given resource. Optionally, a variable-length encoding may be used to representoffsets and lengths.
+Requests a chunk of a given resource. Optionally, a variable-length encoding may be used to represent offsets and lengths.
 
 ```
 head = <id.4>+ <size.2>
