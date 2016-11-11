@@ -38,7 +38,6 @@ public interface Test {
         }));
 
         int id = 0;
-        int failures = 0;
         for(Method m : methods) {
             if(!m.getName().startsWith("_")) continue;
             String ok = "ok " + ++id + " -"
@@ -52,7 +51,6 @@ public interface Test {
                 throw new RuntimeException(e);
             }
             catch(InvocationTargetException e) {
-                ++failures;
                 Throwable cause = e.getCause();
                 out.printf(" %s: %s\n",
                     cause.getClass().getSimpleName(),
@@ -60,7 +58,5 @@ public interface Test {
                 out.println("not " + ok);
             }
         }
-
-        System.exit(failures);
     }
 }
