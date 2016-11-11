@@ -73,8 +73,8 @@ Requests a message digest for a given resource. The body contains a comma-separa
 
 ```
 head = <id.4>+ <size.2>
-body = <raw>
-     | <deflated>
+body = <raw.?>
+     | <deflated.?>
 ```
 
 ## Responses
@@ -123,7 +123,7 @@ data = <raw.?>
 
 ### Digest Responses
 
-Transfer of a CRC32 checksum is optional. The used algorithm is identified by its index in the request list, where a value of 0 corresponds to the dafault algorithm SHA-256.
+Transfer of a CRC32 checksum is optional. The used algorithm is identified by its index in the request list, where a value of 0 corresponds to the default algorithm SHA-256.
 
 ```
 data = <algorithm.1> <digest.?>
