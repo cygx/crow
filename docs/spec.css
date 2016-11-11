@@ -17,3 +17,11 @@ th {
 td, th {
     border: 1px solid #aaa;
 }
+
+a {
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}

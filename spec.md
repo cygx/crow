@@ -1,4 +1,18 @@
-# Crow Transfer Protocol Specification
+# Crow Transfer Protocol Specification [TOP]
+
+1. [Overview][over]
+2. [Requests][req]
+    1. [Record Requests][record-req]
+    2. [Blob Requests][blob-req]
+    3. [Chunk Requests][chunk-req]
+    4. [Digest Requests][digest-req]
+3. [Responses][res]
+    1. [Record Responses][record-res]
+    2. [Blob Responses][blob-res]
+    3. [Chunk Responses][chunk-res]
+    4. [Digest Responses][digest-res]
+
+## 1 Overview [over]
 
 The *crow* protocol is used to transfer binary resources, either as a single blob or in chunks. A single persistent connection can be used to make multiple requests, but the server is of course free to terminate sessions as it sees fit.
 
@@ -10,7 +24,7 @@ Records can be requested by name, but the resources associated with a given name
 
 To ensure integrity of transferred resource, a message digest may be requested. While clients are free to request arbitrary algorithms, only SHA-256 is required.
 
-## Requests
+## 2 Requests [req]
 
 Requests happen in terms of request frames, a sequence of requests of uniform type that is supposed to fit into a single TCP segment.
 
@@ -30,7 +44,7 @@ type   = {zyyxxxxx}
 | `x`  | 13  |  DC3  | request chunk                 |
 | `x`  | 14  |  DC4  | request digest                |
 
-### Record Requests
+### 2.1 Record Requests [record-req]
 
 Requests the record for a given resource by its UTF8-encoded name, optionally compressed using the `deflate` algorithm.
 
@@ -40,7 +54,7 @@ body = <raw.?>
      | <deflated.?>
 ```
 
-### Blob Requests
+### 2.2 Blob Requests [blob-req]
 
 Request transmission of entire resources. Does not have a body.
 
@@ -49,7 +63,7 @@ head = <id.4>+
 body = X
 ```
 
-### Chunk Requests
+### 2.3 Chunk Requests [chunk-req]
 
 Requests a chunk of a given resource. Optionally, a variable-length encoding may be used to represent offsets and lengths.
 
@@ -59,7 +73,7 @@ body = [ <off.8> <len.8> ]+
      | [ <off.var> <len.var> ]+
 ```
 
-#### Alternative Variable-Length Integer Encoding
+#### 2.3.1 Alternative Variable-Length Integer Encoding [varint-enc]
 
 ```
  32ki  0xxxxxxx xxxxxxxx
@@ -67,7 +81,7 @@ body = [ <off.8> <len.8> ]+
 2**62  11xxxxxx xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx
 ```
 
-### Digest Requests
+### 2.4 Digest Requests [digest-req]
 
 Requests a message digest for a given resource. The body contains a comma-separated list of algorithms, from which the server will choose as it sees fit. The default algorithm SHA-256 is always present and does not need to be listed explicitly.
 
@@ -77,7 +91,7 @@ body = <raw.?>
      | <deflated.?>
 ```
 
-## Responses
+## 3 Responses [res]
 
 ```
 stream   = <response.?>+
@@ -95,7 +109,7 @@ The response type pertains to individual requests.
 | `x`  | 06  |  ACK  | request accepted              |
 | `x`  | 15  |  NAK  | request rejected              |
 
-### Record Responses
+### 3.1 Record Responses [record-res]
 
 Transfer of a CRC32 checksum is not recommended.
 
@@ -103,7 +117,7 @@ Transfer of a CRC32 checksum is not recommended.
 data = <id.4> <crc.4> <size.8> <timestamp.8>
 ```
 
-### Blob Responses
+### 3.2 Blob Responses [blob-res]
 
 Transfer of a CRC32 checksum is not recommended as it has already been transferred as part of the record.
 
@@ -112,7 +126,7 @@ data = <raw.?>
      | <deflated.?>
 ```
 
-### Chunk Responses
+### 3.3 Chunk Responses [chunk-res]
 
 Transfer of a CRC32 checksum is recommended.
 
@@ -121,7 +135,7 @@ data = <raw.?>
      | <deflated.?>
 ```
 
-### Digest Responses
+### 3.4 Digest Responses [digest-res]
 
 Transfer of a CRC32 checksum is optional. The used algorithm is identified by its index in the request list, where a value of 0 corresponds to the default algorithm SHA-256.
 
