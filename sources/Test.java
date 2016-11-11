@@ -40,8 +40,7 @@ public interface Test {
         int id = 0;
         for(Method m : methods) {
             if(!m.getName().startsWith("_")) continue;
-            String ok = "ok " + ++id + " -"
-                      + join(" ", m.getName().split("_", 3));
+            String ok = "ok " + ++id + " -" + m.getName().replace('_', ' ');
 
             try {
                 m.invoke(null);

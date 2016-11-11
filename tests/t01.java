@@ -31,7 +31,7 @@ class t01 {
         roundtripVarint(0xFFFF);
     }
 
-    static void _02_requestFrame() throws IOException {
+    static void _02_request_frame() throws IOException {
         {
             RequestFrame frame =
                 RequestFrame.requestRecords("foo", "bar", "baz").encode(true);
