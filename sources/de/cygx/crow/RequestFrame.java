@@ -8,7 +8,26 @@ import static de.cygx.crow.Varint.*;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class RequestFrame {
-    static class RecordRequestBuilder {
+    public static class DecodingException extends IOException {
+        DecodingException() {}
+        DecodingException(String msg) { super(msg); }
+        DecodingException(String msg, Throwable cause) { super(msg, cause); }
+        DecodingException(Throwable cause) { super(cause); }
+    }
+
+    public static class Chunk {
+        public final int id;
+        public final long offset;
+        public final long length;
+
+        Chunk(int id, long offset, long length) {
+            this.id = id;
+            this.offset = offset;
+            this.length = length;
+        }
+    }
+
+    public static class RecordRequestBuilder {
         byte[][] names;
         boolean deflate;
         int level;
@@ -29,7 +48,7 @@ public class RequestFrame {
             return deflate(Deflater.DEFAULT_COMPRESSION);
         }
 
-        public RequestFrame create(boolean keepAlive) {
+        public RequestFrame encode(boolean keepAlive) {
             byte[] head = new byte[names.length * 2 + 6];
             ByteBuffer buf = ByteBuffer.wrap(head);
             buf.order(ByteOrder.BIG_ENDIAN);
@@ -70,14 +89,14 @@ public class RequestFrame {
         }
     }
 
-    static class BlobRequestBuilder {
+    public static class BlobRequestBuilder {
         int[] ids;
 
         BlobRequestBuilder(int[] ids) {
             this.ids = ids;
         }
 
-        public RequestFrame create(boolean keepAlive) {
+        public RequestFrame encode(boolean keepAlive) {
             byte[] head = new byte[ids.length * 4 + 2];
             ByteBuffer buf = ByteBuffer.wrap(head);
             buf.order(ByteOrder.BIG_ENDIAN);
@@ -92,19 +111,7 @@ public class RequestFrame {
         }
     }
 
-    static class ChunkRequestBuilder {
-        static class Chunk {
-            int id;
-            long offset;
-            long length;
-
-            Chunk(int id, long offset, long length) {
-                this.id = id;
-                this.offset = offset;
-                this.length = length;
-            }
-        }
-
+    public static class ChunkRequestBuilder {
         List<Chunk> chunks = new ArrayList<Chunk>(255);
         boolean varint;
 
@@ -123,7 +130,7 @@ public class RequestFrame {
             return this;
         }
 
-        public RequestFrame create(boolean keepAlive) {
+        public RequestFrame encode(boolean keepAlive) {
             int size = chunks.size();
             byte[] head = new byte[size * 4 + 4];
             ByteBuffer buf = ByteBuffer.wrap(head);
@@ -165,7 +172,7 @@ public class RequestFrame {
         }
     }
 
-    static class DigestRequestBuilder {
+    public static class DigestRequestBuilder {
         int[] ids;
         byte[] algorithms = new byte[0];
         boolean deflate;
@@ -196,7 +203,7 @@ public class RequestFrame {
             return this;
         }
 
-        public RequestFrame create(boolean keepAlive) {
+        public RequestFrame encode(boolean keepAlive) {
             byte[] head = new byte[ids.length * 4 + 4];
             ByteBuffer buf = ByteBuffer.wrap(head);
             buf.order(ByteOrder.BIG_ENDIAN);
@@ -275,6 +282,11 @@ public class RequestFrame {
         return new DigestRequestBuilder(ids);
     }
 
+    public static RequestFrame decodeFrom(DataInputStream is)
+            throws IOException {
+        throw new RuntimeException("TODO");
+    }
+
     public final byte[] head;
     public final byte[] body;
 
@@ -287,4 +299,136 @@ public class RequestFrame {
     public int size() { return head[1]; }
     public boolean keepAlive() { return (head[0] & 0x80) != 0; }
     public int representation() { return (head[0] & 0x60) >> 5; }
+
+    public String[] recordNames() {
+        throw new IllegalStateException("frame not decoded");
+    }
+
+    public int[] blobIds() {
+        throw new IllegalStateException("frame not decoded");
+    }
+
+    public Chunk[] chunks() {
+        throw new IllegalStateException("frame not decoded");
+    }
+
+    public String[] digestAlgorithms() {
+        throw new IllegalStateException("frame not decoded");
+    }
+
+    public RequestFrame decode() throws IOException {
+        switch(type()) {
+            case RECORD_REQUEST:
+            throw new RuntimeException("TODO");
+
+            case BLOB_REQUEST: {
+                int size = size();
+                if(head.length != size * 4 + 2)
+                    throw new DecodingException("wrong head size");
+
+                DataInputStream is = new DataInputStream(
+                    new ByteArrayInputStream(head, 2, size * 4));
+
+                int[] ids = new int[size];
+                for(int i = 0; i < size; ++i)
+                    ids[i] = is.readInt();
+
+                return new DecodedBlobFrame(this, ids);
+            }
+
+            case CHUNK_REQUEST:
+            case DIGEST_REQUEST:
+            throw new RuntimeException("TODO");
+
+            default:
+            throw new DecodingException("unknown request type " + type());
+        }
+    }
+
+    static abstract class DecodedFrame extends RequestFrame {
+        DecodedFrame(RequestFrame frame) {
+            super(frame.head, frame.body);
+        }
+
+        @Override
+        public RequestFrame decode() {
+            return this;
+        }
+
+        @Override
+        public String[] recordNames() {
+            throw new IllegalStateException("not a record frame");
+        }
+
+        @Override
+        public int[] blobIds() {
+            throw new IllegalStateException("not a blob frame");
+        }
+
+        @Override
+        public Chunk[] chunks() {
+            throw new IllegalStateException("not a chunk frame");
+        }
+
+        @Override
+        public String[] digestAlgorithms() {
+            throw new IllegalStateException("not a digest frame");
+        }
+    }
+
+    public static class DecodedRecordFrame extends DecodedFrame {
+        final String[] names;
+
+        DecodedRecordFrame(RequestFrame frame, String[] names) {
+            super(frame);
+            this.names = names;
+        }
+
+        @Override
+        public String[] recordNames() {
+            return names;
+        }
+    }
+
+    public static class DecodedBlobFrame extends DecodedFrame {
+        final int ids[];
+
+        DecodedBlobFrame(RequestFrame frame, int[] ids) {
+            super(frame);
+            this.ids = ids;
+        }
+
+        @Override
+        public int[] blobIds() {
+            return ids;
+        }
+    }
+
+    public static class DecodedChunkFrame extends DecodedFrame {
+        final Chunk[] chunks;
+
+        DecodedChunkFrame(RequestFrame frame, Chunk[] chunks) {
+            super(frame);
+            this.chunks = chunks;
+        }
+
+        @Override
+        public Chunk[] chunks() {
+            return chunks;
+        }
+    }
+
+    public static class DecodedDigestFrame extends DecodedFrame {
+        final String[] algorithms;
+
+        DecodedDigestFrame(RequestFrame frame, String[] algorithms) {
+            super(frame);
+            this.algorithms = algorithms;
+        }
+
+        @Override
+        public String[] digestAlgorithms() {
+            return algorithms;
+        }
+    }
 }
