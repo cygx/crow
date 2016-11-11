@@ -37,10 +37,11 @@ public interface Test {
             }
         }));
 
-        count = 0;
+        int id = 0;
+        int failures = 0;
         for(Method m : methods) {
             if(!m.getName().startsWith("_")) continue;
-            String ok = "ok " + ++count + " -"
+            String ok = "ok " + ++id + " -"
                       + join(" ", m.getName().split("_", 3));
 
             try {
@@ -51,12 +52,15 @@ public interface Test {
                 throw new RuntimeException(e);
             }
             catch(InvocationTargetException e) {
+                ++failures;
                 Throwable cause = e.getCause();
                 out.printf(" %s: %s\n",
                     cause.getClass().getSimpleName(),
-                    cause.getMessage());
+                    join("\n  ", cause.getMessage().split("\n")));
                 out.println("not " + ok);
             }
         }
+
+        System.exit(failures);
     }
 }
