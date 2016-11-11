@@ -1,11 +1,22 @@
 import de.cygx.crow.*;
 import java.io.*;
 import java.net.*;
+import java.nio.*;
+import java.nio.channels.*;
+import java.nio.file.*;
+import java.nio.file.attribute.*;
 import java.util.*;
+import static java.nio.file.StandardOpenOption.*;
+import static java.nio.file.attribute.PosixFilePermission.*;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 class Main {
     static final InetAddress LOOPBACK = InetAddress.getLoopbackAddress();
+
+    static final FileAttribute<Set<PosixFilePermission>>
+        DEFAULT_PERMISSIONS = PosixFilePermissions.asFileAttribute(
+            PosixFilePermissions.fromString("rw-rw-r--"));
+
     static boolean shelled;
 
     static interface Shellable {
@@ -207,7 +218,29 @@ class Main {
     }
 
     static void createRepo(String name) {
-        System.out.println("create repo " + name);
+        try {
+            FileChannel channel = null;
+            try {
+                channel = FileChannel.open(
+                    Paths.get(name),
+                    EnumSet.of(CREATE_NEW, WRITE),
+                    DEFAULT_PERMISSIONS
+                );
+            }
+            catch(UnsupportedOperationException e) {
+                channel = FileChannel.open(
+                    Paths.get(name),
+                    EnumSet.of(CREATE_NEW, WRITE)
+                );
+            }
+
+            try {
+                new ObjectOutputStream(Channels.newOutputStream(channel))
+                    .writeObject(new Repository());
+            }
+            finally { channel.close(); }
+        }
+        catch(IOException e) { die(e); }
     }
 
     static void pruneRepo(String name) {

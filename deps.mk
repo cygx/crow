@@ -11,7 +11,7 @@ Varint: classes/de/cygx/crow/Varint.class
 	javac -d classes -sourcepath sources $^
 	@touch $@
 
-classes/Main.class: sources/de/cygx/crow/Server.java sources/Tree.java
+classes/Main.class: sources/de/cygx/crow/Repository.java sources/de/cygx/crow/Server.java sources/Tree.java
 classes/de/cygx/crow/Repository.class: sources/de/cygx/crow/Record.java
 classes/de/cygx/crow/RequestFrame.class: sources/de/cygx/crow/Constants.java sources/de/cygx/crow/Varint.java
 
