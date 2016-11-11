@@ -72,7 +72,7 @@ body = [ <off.8> <len.8> ]+
 Requests a message digest for a given resource. The body contains a comma-separated list of algorithms, from which the server will choose as it sees fit. The default algorithm SHA-256 is always present and does not need to be listed explicitly.
 
 ```
-head = [ <id.4> <len.2> ]+ <size.2>
+head = <id.4>+ <size.2>
 body = <raw>
      | <deflated>
 ```

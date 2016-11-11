@@ -166,14 +166,13 @@ public class RequestFrame {
     }
 
     static class DigestRequestBuilder {
-        byte[][] names;
+        int[] ids;
+        byte[] algorithms = new byte[0];
         boolean deflate;
         int level;
-        int size;
 
-        DigestRequestBuilder(byte[][] names, int size) {
-            this.names = names;
-            this.size = size;
+        DigestRequestBuilder(int[] ids) {
+            this.ids = ids;
         }
 
         public DigestRequestBuilder deflate(int level) {
@@ -186,8 +185,19 @@ public class RequestFrame {
             return deflate(Deflater.DEFAULT_COMPRESSION);
         }
 
+        public DigestRequestBuilder algorithms(String... names) {
+            byte[] bytes = String.join(",", names).getBytes(UTF_8);
+            if(bytes.length >= 0x10000) {
+                throw new IllegalArgumentException(
+                    "name size limit 65535 exceeded");
+            }
+
+            algorithms = bytes;
+            return this;
+        }
+
         public RequestFrame create(boolean keepAlive) {
-            byte[] head = new byte[names.length * 2 + 6];
+            byte[] head = new byte[ids.length * 4 + 4];
             ByteBuffer buf = ByteBuffer.wrap(head);
             buf.order(ByteOrder.BIG_ENDIAN);
 
@@ -196,39 +206,34 @@ public class RequestFrame {
                      | (deflate   ? 0x20 : 0);
 
             buf.put((byte)type);
-            buf.put((byte)names.length);
+            buf.put((byte)ids.length);
+            for(int id : ids) buf.putInt(id);
 
-            ByteArrayOutputStream bs = new ByteArrayOutputStream(size);
-            try {
-                if(deflate) {
-                    Deflater def = new Deflater(level, true);
-                    DeflaterOutputStream ds = new DeflaterOutputStream(bs, def);
-                    for(byte[] name : names) {
-                        buf.putShort((short)name.length);
-                        ds.write(name);
-                    }
+            byte[] body;
+            if(deflate) try {
+                ByteArrayOutputStream bs =
+                    new ByteArrayOutputStream(algorithms.length);
 
-                    ds.close();
+                Deflater def = new Deflater(level, true);
+                DeflaterOutputStream ds = new DeflaterOutputStream(bs, def);
+                ds.write(algorithms);
+                ds.close();
 
-                    int bodySize = bs.size();
-                    if(bodySize >= 0x10000)
-                        throw new RuntimeException("deflatd size exceeds limit");
+                int bodySize = bs.size();
+                if(bodySize >= 0x10000)
+                    throw new RuntimeException("deflatd size exceeds limit");
 
-                    buf.putShort((short)bodySize);
-                }
-                else {
-                    for(byte[] name : names) {
-                        buf.putShort((short)name.length);
-                        bs.write(name);
-                    }
-
-                    buf.putShort((short)size);
-                }
+                body = bs.toByteArray();
+                buf.putShort((short)bodySize);
             }
             catch(IOException e) { throw new RuntimeException(e); }
+            else {
+                body = algorithms;
+                buf.putShort((short)algorithms.length);
+            }
 
             assert !buf.hasRemaining();
-            return new RequestFrame(head, bs.toByteArray());
+            return new RequestFrame(head, body);
         }
     }
 
@@ -265,19 +270,9 @@ public class RequestFrame {
         return new ChunkRequestBuilder();
     }
 
-    public static DigestRequestBuilder requestDigests(String... names) {
-        checkFrameSize(names.length);
-
-        byte[][] encodedNames = new byte[names.length][];
-        int i = 0, size = 0;
-        for(String name : names) {
-            int len = (encodedNames[i++] = name.getBytes(UTF_8)).length;
-            size += len;
-            if(size >= 0x10000) throw new IllegalArgumentException(
-                "joint name size limit 65535 exceeded");
-        }
-
-        return new DigestRequestBuilder(encodedNames, size);
+    public static DigestRequestBuilder requestDigests(int... ids) {
+        checkFrameSize(ids.length);
+        return new DigestRequestBuilder(ids);
     }
 
     public final byte[] head;
