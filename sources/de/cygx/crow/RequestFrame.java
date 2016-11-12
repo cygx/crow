@@ -347,7 +347,6 @@ public class RequestFrame {
 
                     case 1: {
                         bytes = new byte[totalLength];
-
                         Inflater inf = new Inflater(true);
                         inf.setInput(body);
                         try {
@@ -364,7 +363,7 @@ public class RequestFrame {
                         catch(DataFormatException e) {
                             throw new DecodingException(e);
                         }
-
+                        finally { inf.end(); }
                         break;
                     }
 
