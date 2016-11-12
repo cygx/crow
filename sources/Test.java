@@ -51,9 +51,9 @@ public interface Test {
             }
             catch(InvocationTargetException e) {
                 Throwable cause = e.getCause();
-                out.printf(" %s: %s\n",
-                    cause.getClass().getSimpleName(),
-                    join("\n  ", cause.getMessage().split("\n")));
+                String msg = cause.getMessage();
+                if(msg != null) msg = msg.replace("\n", "\n  ");
+                out.printf(" %s: %s\n", cause.getClass().getSimpleName(), msg);
                 out.println("not " + ok);
             }
         }
