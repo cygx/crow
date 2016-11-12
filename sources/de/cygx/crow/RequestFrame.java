@@ -107,7 +107,7 @@ public class RequestFrame {
             for(int id : ids) buf.putInt(id);
 
             assert !buf.hasRemaining();
-            return new RequestFrame(head, null);
+            return new RequestFrame(head, new byte[0]);
         }
     }
 
