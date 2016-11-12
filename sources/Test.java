@@ -1,9 +1,24 @@
 import java.io.*;
+import java.util.*;
 import java.lang.reflect.*;
 import static java.lang.String.join;
 import static java.util.Arrays.sort;
 
 public interface Test {
+    static void is(Object a, Object b)   { assert a == b: a + " != " + b; }
+    static void is(int a, int b)         { assert a == b: a + " != " + b; }
+    static void is(long a, long b)       { assert a == b: a + " != " + b; }
+    static void is(boolean a, boolean b) { assert a == b: a + " != " + b; }
+
+    static void iseq(Object a, Object b) {
+        assert Objects.equals(a, b): a + " !eq " + b;
+    }
+
+    static void iseq(Object[] a, Object[] b) {
+        assert Arrays.equals(a, b):
+            Arrays.toString(a) + " !eq " + Arrays.toString(b);
+    }
+
     static void run(Class c) {
         run(c, "1".equals(System.getenv("PRINT_STACK_TRACE")));
     }
