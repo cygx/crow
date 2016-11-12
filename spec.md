@@ -14,7 +14,7 @@
 
 ## 1 Overview [over]
 
-The *crow* protocol is used to transfer binary resources, either as a single blob or in chunks. A single persistent connection can be used to make multiple requests, but the server is of course free to terminate sessions as it sees fit.
+The *Crow* protocol is used to transfer binary resources, either as a single blob or in chunks. A single persistent connection can be used to make multiple requests, but the server is of course free to terminate sessions as it sees fit.
 
 During a session, resources are identified by integral ID. While an ID may very well persist accross sessions, this is not guaranteed.
 
@@ -43,6 +43,9 @@ type   = {zyyxxxxx}
 | `x`  | 12  |  DC2  | request blob                  |
 | `x`  | 13  |  DC3  | request chunk                 |
 | `x`  | 14  |  DC4  | request digest                |
+
+Note
+:   Frame headers encoded according to the following scheme will be at most 1024 bytes long.
 
 ### 2.1 Record Requests [record-req]
 

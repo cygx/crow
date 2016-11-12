@@ -1,13 +1,26 @@
 body {
     font-family: sans-serif;
     max-width: 40em;
-    margin: 2em auto;
+    margin: 4em auto;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    margin-top: 2em;
+}
+
+ol {
+    padding-left: 2em;
 }
 
 pre {
     background: #eee;
     border: 1px solid #aaa;
     padding: 0.5em;
+    margin: 0.5em 1em;
+}
+
+table {
+    margin: 1em auto;
 }
 
 th {
@@ -16,6 +29,20 @@ th {
 
 td, th {
     border: 1px solid #aaa;
+}
+
+dl {
+    padding-left: 1em;
+    margin: 1em;
+    border-left: 0.25em solid #aaa;
+}
+
+dt {
+    font-weight: bold;
+}
+
+dd {
+    margin-left: 1em;
 }
 
 a {
