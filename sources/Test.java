@@ -79,8 +79,10 @@ public interface Test extends Runnable {
                         cause.getClass().getSimpleName(), msg);
 
                     if(printStackTrace) {
-                        for(StackTraceElement s : cause.getStackTrace())
+                        for(StackTraceElement s : cause.getStackTrace()) {
                             out.println("   at " + s);
+                            if(s.getMethodName().startsWith("_")) break;
+                        }
                     }
 
                     out.println("not " + ok);
