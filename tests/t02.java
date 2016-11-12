@@ -8,7 +8,7 @@ class t02 {
         Test.run(t02.class);
     }
 
-    static void _01_create_record_request_frame() throws IOException {
+    static void _A1_create_record_request_frame() throws IOException {
         RequestFrame frame =
             RequestFrame.requestRecords("foo", "bar", "baz").encode(true);
 
@@ -25,7 +25,30 @@ class t02 {
             "representation is " + frame.representation();
     }
 
-    static void _02_decode_blob_request_frame() throws IOException {
+    static void _B1_decode_record_request_frame() throws IOException {
+        String[] names = { "hello world", "Käsekuchen", "αβγ" };
+        RequestFrame frame = RequestFrame.requestRecords(names).encode(false);
+
+        RequestFrame decodedFrame = frame.decode();
+        String[] decodedNames = decodedFrame.recordNames();
+
+        assert Arrays.equals(decodedNames, names):
+            Arrays.toString(decodedNames) + " != " + Arrays.toString(names);
+    }
+
+    static void _B2_decode_deflated_record_request_frame() throws IOException {
+        String[] names = { "hello world", "Käsekuchen", "αβγ" };
+        RequestFrame frame =
+            RequestFrame.requestRecords(names).deflate().encode(false);
+
+        RequestFrame decodedFrame = frame.decode();
+        String[] decodedNames = decodedFrame.recordNames();
+
+        assert Arrays.equals(decodedNames, names):
+            Arrays.toString(decodedNames) + " != " + Arrays.toString(names);
+    }
+
+    static void _B3_decode_blob_request_frame() throws IOException {
         int[] ids = { 42, 1 << 31, 23 << 17 | 1 };
         RequestFrame frame = RequestFrame.requestBlobs(ids).encode(false);
         RequestFrame decodedFrame = frame.decode();

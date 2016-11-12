@@ -317,21 +317,76 @@ public class RequestFrame {
     }
 
     public RequestFrame decode() throws IOException {
+        DataInputStream his = new DataInputStream(
+            new ByteArrayInputStream(head, 2, head.length - 2));
+
         switch(type()) {
-            case RECORD_REQUEST:
-            throw new RuntimeException("TODO");
+            case RECORD_REQUEST: {
+                int size = size();
+                if(head.length != size * 2 + 6)
+                    throw new DecodingException("wrong head size");
+
+                int[] lengths = new int[size];
+                for(int i = 0; i < size; ++i)
+                    lengths[i] = his.readUnsignedShort();
+
+                int bodySize = his.readInt();
+                if(bodySize != body.length)
+                    throw new DecodingException("wrong body size");
+
+                byte[] bytes;
+                int totalLength = Arrays.stream(lengths).sum();
+                switch(representation()) {
+                    case 0: {
+                        if(totalLength != bodySize)
+                            throw new DecodingException("inconsistent body size");
+
+                        bytes = body;
+                        break;
+                    }
+
+                    case 1: {
+                        bytes = new byte[totalLength];
+
+                        Inflater inf = new Inflater(true);
+                        inf.setInput(body);
+                        try {
+                            if(inf.inflate(bytes) != bytes.length) {
+                                throw new DecodingException(
+                                    "inflation underflow");
+                            }
+
+                            if(inf.getRemaining() != 0) {
+                                throw new DecodingException(
+                                    "inflation remainder");
+                            }
+                        }
+                        catch(DataFormatException e) {
+                            throw new DecodingException(e);
+                        }
+
+                        break;
+                    }
+
+                    default:
+                    throw new DecodingException("unsupported representation");
+                }
+
+                String[] names = new String[size];
+                for(int pos = 0, i = 0; i < size; pos += lengths[i++])
+                    names[i] = new String(bytes, pos, lengths[i], UTF_8);
+
+                return new DecodedRecordFrame(this, names);
+            }
 
             case BLOB_REQUEST: {
                 int size = size();
                 if(head.length != size * 4 + 2)
                     throw new DecodingException("wrong head size");
 
-                DataInputStream is = new DataInputStream(
-                    new ByteArrayInputStream(head, 2, size * 4));
-
                 int[] ids = new int[size];
                 for(int i = 0; i < size; ++i)
-                    ids[i] = is.readInt();
+                    ids[i] = his.readInt();
 
                 return new DecodedBlobFrame(this, ids);
             }
