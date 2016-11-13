@@ -3,58 +3,42 @@ import java.io.*;
 import java.util.Arrays;
 import static de.cygx.crow.Constants.*;
 
-class t02 {
+class t02 implements Test {
     public static void main(String[] args) {
-        Test.run(t02.class);
+        new t02().run();
     }
 
-    static void _A1_create_record_request_frame() throws IOException {
-        RequestFrame frame =
-            RequestFrame.requestRecords("foo", "bar", "baz").encode(true);
+    void _A1_build_record_request_frame() throws IOException {
+        RequestFrame frame = RequestFrame.requestRecords("foo", "bar", "baz")
+            .keepAlive().build();
 
-        assert frame.type() == RECORD_REQUEST:
-            "type is " + frame.type();
-
-        assert frame.size() == 3:
-            "size is " + frame.size();
-
-        assert frame.keepAlive() == true:
-            "keepAlive is " + frame.keepAlive();
-
-        assert frame.representation() == 0:
-            "representation is " + frame.representation();
+        is(frame.type, RequestFrame.Type.RECORD);
+        is(frame.size, 3);
+        is(frame.keepAlive, true);
+        is(frame.coding, RequestFrame.Coding.RAW);
     }
 
-    static void _B1_decode_record_request_frame() throws IOException {
+    void _B1_decode_record_request_frame() throws IOException {
         String[] names = { "hello world", "Käsekuchen", "αβγ" };
-        RequestFrame frame = RequestFrame.requestRecords(names).encode(false);
+        String[] decodedNames = RequestFrame.requestRecords(names)
+            .build().encode(true).decode(false).names();
 
-        RequestFrame decodedFrame = frame.decode();
-        String[] decodedNames = decodedFrame.recordNames();
-
-        assert Arrays.equals(decodedNames, names):
-            Arrays.toString(decodedNames) + " != " + Arrays.toString(names);
+        iseq(decodedNames, names);
     }
 
-    static void _B2_decode_deflated_record_request_frame() throws IOException {
+    void _B2_decode_deflated_record_request_frame() throws IOException {
         String[] names = { "hello world", "Käsekuchen", "αβγ" };
-        RequestFrame frame =
-            RequestFrame.requestRecords(names).deflate().encode(false);
+        String[] decodedNames = RequestFrame.requestRecords(names)
+            .deflate().build().encode(true).decode(false).names();
 
-        RequestFrame decodedFrame = frame.decode();
-        String[] decodedNames = decodedFrame.recordNames();
-
-        assert Arrays.equals(decodedNames, names):
-            Arrays.toString(decodedNames) + " != " + Arrays.toString(names);
+        iseq(decodedNames, names);
     }
 
-    static void _B3_decode_blob_request_frame() throws IOException {
+    void _B3_decode_blob_request_frame() throws IOException {
         int[] ids = { 42, 1 << 31, 23 << 17 | 1 };
-        RequestFrame frame = RequestFrame.requestBlobs(ids).encode(false);
-        RequestFrame decodedFrame = frame.decode();
-        int[] decodedIds = decodedFrame.blobIds();
+        int[] decodedIds = RequestFrame.requestBlobs(ids)
+            .build().encode(true).decode(false).ids();
 
-        assert Arrays.equals(decodedIds, ids):
-            Arrays.toString(decodedIds) + " != " + Arrays.toString(ids);
+        iseq(decodedIds, ids);
     }
 }

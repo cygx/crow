@@ -2,12 +2,12 @@ import de.cygx.crow.*;
 import java.io.*;
 import static de.cygx.crow.Varint.*;
 
-class t01 {
+class t01 implements Test {
     public static void main(String[] args) {
-        Test.run(t01.class);
+        new t01().run();
     }
 
-    static void roundtripVarint(long value) throws IOException {
+    void roundtripVarint(long value) throws IOException {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         DataOutputStream dos = new DataOutputStream(bos);
         writeVarint(dos, value);
@@ -17,11 +17,10 @@ class t01 {
         DataInputStream dis = new DataInputStream(bis);
         long decodedValue = readVarint(dis);
 
-        assert decodedValue == value:
-            decodedValue + " != " + value;
+        is(decodedValue, value);
     }
 
-    static void _01_roundtrip_varints() throws IOException {
+    void _01_roundtrip_varints() throws IOException {
         roundtripVarint(0);
         roundtripVarint(1);
         roundtripVarint(0xFFFF);
