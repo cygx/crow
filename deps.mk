@@ -1,10 +1,8 @@
-Constants: classes/de/cygx/crow/Constants.class
 DecodingException: classes/de/cygx/crow/DecodingException.class
 EncodingException: classes/de/cygx/crow/EncodingException.class
 Main: classes/Main.class
 Record: classes/de/cygx/crow/Record.class
 Repository: classes/de/cygx/crow/Repository.class
-RequestFrame: classes/de/cygx/crow/RequestFrame.class
 RequestFrameBuilder: classes/de/cygx/crow/RequestFrameBuilder.class
 RequestFrameReader: classes/de/cygx/crow/RequestFrameReader.class
 RequestType: classes/de/cygx/crow/RequestType.class
@@ -13,18 +11,16 @@ Test: classes/Test.class
 Tree: classes/Tree.class
 Varint: classes/de/cygx/crow/Varint.class
 
-.classes.dummy: sources/de/cygx/crow/Constants.java sources/de/cygx/crow/DecodingException.java sources/de/cygx/crow/EncodingException.java sources/Main.java sources/de/cygx/crow/Record.java sources/de/cygx/crow/Repository.java sources/de/cygx/crow/RequestFrame.java sources/de/cygx/crow/RequestFrameBuilder.java sources/de/cygx/crow/RequestFrameReader.java sources/de/cygx/crow/RequestType.java sources/de/cygx/crow/Server.java sources/Test.java sources/Tree.java sources/de/cygx/crow/Varint.java
-	javac -d classes -sourcepath sources $^
+.classes.dummy: sources/de/cygx/crow/DecodingException.java sources/de/cygx/crow/EncodingException.java sources/Main.java sources/de/cygx/crow/Record.java sources/de/cygx/crow/Repository.java sources/de/cygx/crow/RequestFrameBuilder.java sources/de/cygx/crow/RequestFrameReader.java sources/de/cygx/crow/RequestType.java sources/de/cygx/crow/Server.java sources/Test.java sources/Tree.java sources/de/cygx/crow/Varint.java
+	javac -d classes -sourcepath sources $(filter %.java,$^)
 	@touch $@
 
 classes/Main.class: sources/de/cygx/crow/Repository.java sources/de/cygx/crow/Server.java sources/Tree.java
 classes/de/cygx/crow/Repository.class: sources/de/cygx/crow/Record.java
 classes/de/cygx/crow/RequestFrameBuilder.class: sources/de/cygx/crow/RequestType.java
 
-classes/de/cygx/crow/Constants.class classes/de/cygx/crow/DecodingException.class classes/de/cygx/crow/EncodingException.class classes/Main.class classes/de/cygx/crow/Record.class classes/de/cygx/crow/Repository.class classes/de/cygx/crow/RequestFrame.class classes/de/cygx/crow/RequestFrameBuilder.class classes/de/cygx/crow/RequestFrameReader.class classes/de/cygx/crow/RequestType.class classes/de/cygx/crow/Server.class classes/Test.class classes/Tree.class classes/de/cygx/crow/Varint.class: classes/%.class: sources/%.java
+classes/de/cygx/crow/DecodingException.class classes/de/cygx/crow/EncodingException.class classes/Main.class classes/de/cygx/crow/Record.class classes/de/cygx/crow/Repository.class classes/de/cygx/crow/RequestFrameBuilder.class classes/de/cygx/crow/RequestFrameReader.class classes/de/cygx/crow/RequestType.class classes/de/cygx/crow/Server.class classes/Test.class classes/Tree.class classes/de/cygx/crow/Varint.class: classes/%.class: sources/%.java
 	javac -d classes -sourcepath sources $<
-
-prove prove-v: MAKEFLAGS += --no-print-directory
 
 prove: .tests.dummy
 	prove -e$(MAKE) t01 t02

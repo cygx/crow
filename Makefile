@@ -26,4 +26,8 @@ docs/spec.html docs/spec.tex: docs/spec.%: docs/spec-%.meta spec.md
 	multimarkdown $(MMDFLAGS) -o $@ $^
 	-@chmod -x $@
 
+.classes.dummy .tests.dummy: deps.mk
+
+prove prove-v: MAKEFLAGS += --no-print-directory
+
 include deps.mk

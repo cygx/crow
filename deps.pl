@@ -48,7 +48,7 @@ print $_->{name}, ': ', $_->{class}, "\n"
     for @classes;
 
 print "\n.classes.dummy:", map({ ' '.$_->{src} } @classes),
-    "\n\tjavac -d classes -sourcepath sources \$^",
+    "\n\tjavac -d classes -sourcepath sources \$(filter %.java,\$^)",
     "\n\t\@touch \$@\n";
 
 for (@classes) {
@@ -64,8 +64,6 @@ print "\n\n", join(' ', map { $_->{class} } @classes),
 %classes = ();
 find \&gather, 'tests';
 @classes = @classes{sort keys %classes};
-
-print "\nprove prove-v: MAKEFLAGS += --no-print-directory\n";
 
 print "\nprove: .tests.dummy\n\tprove -e\$(MAKE)",
     map({ ' '.$_->{name} } @classes), "\n";
