@@ -35,6 +35,9 @@ frame  = <type.1> <count.1> <head.?> <body.?>
 type   = {zyyxxxxx}
 ```
 
+TODO
+:   Document split of `yy` bits into one bit each for deflate and varint
+
 | bits | hex | ascii | description                   |
 |:----:|:---:|:-----:|:------------------------------|
 | `z`  |  1  |   -   | keep alive                    |
