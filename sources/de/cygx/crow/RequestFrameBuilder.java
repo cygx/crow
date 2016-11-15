@@ -62,7 +62,7 @@ public class RequestFrameBuilder implements Closeable {
 
     Deflater deflater;
     RequestType type;
-    int size;
+    int count;
     boolean keepAlive;
     boolean deflate;
     boolean varint;
@@ -93,8 +93,8 @@ public class RequestFrameBuilder implements Closeable {
     public RequestFrameBuilder requestRecords(String... names) {
         type = RequestType.RECORD;
         keepAlive = true;
-        size = names.length;
-        for(int i = 0; i < size; ++i)
+        count = names.length;
+        for(int i = 0; i < count; ++i)
             this.names[i] = names[i];
 
         return this;
@@ -103,8 +103,8 @@ public class RequestFrameBuilder implements Closeable {
     public RequestFrameBuilder requestBlobs(int... ids) {
         type = RequestType.BLOB;
         keepAlive = true;
-        size = ids.length;
-        for(int i = 0; i < size; ++i)
+        count = ids.length;
+        for(int i = 0; i < count; ++i)
             this.ids[i] = ids[i];
 
         return this;
@@ -113,32 +113,32 @@ public class RequestFrameBuilder implements Closeable {
     public RequestFrameBuilder requestChunks() {
         type = RequestType.CHUNK;
         keepAlive = true;
-        size = 0;
+        count = 0;
         return this;
     }
 
     public RequestFrameBuilder requestDigests(int... ids) {
         type = RequestType.DIGEST;
         keepAlive = true;
-        size = ids.length;
-        for(int i = 0; i < size; ++i)
+        count = ids.length;
+        for(int i = 0; i < count; ++i)
             this.ids[i] = ids[i];
 
         return this;
     }
 
     public RequestFrameBuilder add(String name) {
-        names[size++] = name;
+        names[count++] = name;
         return this;
     }
 
     public RequestFrameBuilder add(int id) {
-        ids[size++] = id;
+        ids[count++] = id;
         return this;
     }
 
     public RequestFrameBuilder add(int id, long offset, long length) {
-        chunks[size++] = new Chunk(id, offset, length);
+        chunks[count++] = new Chunk(id, offset, length);
         return this;
     }
 
@@ -178,16 +178,16 @@ public class RequestFrameBuilder implements Closeable {
     }
 
     public void downsize(int size) {
-        if(size < this.size)
-            this.size = size;
+        if(size < count)
+            count = size;
     }
 
     public int headSize() {
         switch(type) {
-            case RECORD : return 2 + size * 2 + 4;
-            case BLOB   : return 2 + size * 4 + 0;
-            case CHUNK  : return 2 + size * 4 + 2;
-            case DIGEST : return 2 + size * 4 + 2;
+            case RECORD : return 2 + count * 2 + 4;
+            case BLOB   : return 2 + count * 4 + 0;
+            case CHUNK  : return 2 + count * 4 + 2;
+            case DIGEST : return 2 + count * 4 + 2;
             default     : throw new IllegalStateException();
         }
     }
