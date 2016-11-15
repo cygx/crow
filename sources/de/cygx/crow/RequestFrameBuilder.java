@@ -16,19 +16,21 @@ public class RequestFrameBuilder implements Closeable {
         }
     }
 
-    static void putShort(short value, byte[] buffer, int pos) {
+    static int putShort(short value, byte[] buffer, int pos) {
         buffer[pos + 0] = (byte)(value >>> 8);
         buffer[pos + 1] = (byte)(value);
+        return 2;
     }
 
-    static void putInt(int value, byte[] buffer, int pos) {
+    static int putInt(int value, byte[] buffer, int pos) {
         buffer[pos + 0] = (byte)(value >>> 24);
         buffer[pos + 1] = (byte)(value >>> 16);
         buffer[pos + 2] = (byte)(value >>>  8);
         buffer[pos + 3] = (byte)(value);
+        return 4;
     }
 
-    static void putLong(long value, byte[] buffer, int pos) {
+    static int putLong(long value, byte[] buffer, int pos) {
         buffer[pos + 0] = (byte)(value >>> 56);
         buffer[pos + 1] = (byte)(value >>> 48);
         buffer[pos + 2] = (byte)(value >>> 40);
@@ -37,26 +39,22 @@ public class RequestFrameBuilder implements Closeable {
         buffer[pos + 5] = (byte)(value >>> 16);
         buffer[pos + 6] = (byte)(value >>>  8);
         buffer[pos + 7] = (byte)(value);
+        return 8;
+    }
+
+    static int varintSize(long value) {
+        if(value < 0) throw new IllegalArgumentException("negative value");
+        if(value < 1 << 15) return 2;
+        if(value < 1 << 30) return 4;
+        if(value < 1 << 62) return 8;
+        throw new IllegalArgumentException("value greater than 2**62-1");
     }
 
     static int putVarint(long value, byte[] buffer, int pos) {
         if(value < 0) throw new IllegalArgumentException("negative value");
-
-        if(value < 1 << 15) {
-            putShort((short)value, buffer, pos);
-            return 2;
-        }
-
-        if(value < 1 << 30) {
-            putInt((int)value | 2 << 30, buffer, pos);
-            return 4;
-        }
-
-        if(value < 1 << 62) {
-            putLong(value | 3 << 62, buffer, pos);
-            return 8;
-        }
-
+        if(value < 1 << 15) return putShort((short)value, buffer, pos);
+        if(value < 1 << 30) return putInt((int)value | 2 << 30, buffer, pos);
+        if(value < 1 << 62) return putLong(value | 3 << 62, buffer, pos);
         throw new IllegalArgumentException("value greater than 2**62-1");
     }
 
@@ -233,16 +231,92 @@ public class RequestFrameBuilder implements Closeable {
 
         buffer[offset++] = firstByte();
         buffer[offset++] = (byte)size;
-        for(int id : ids) {
-            putInt(id, buffer, offset);
-            offset += 4;
+        for(int id : ids)
+            offset += putInt(id, buffer, offset);
+
+        return size;
+    }
+
+    int varintChunkBodySize() {
+        int size = 0;
+        for(int i = 0; i < count; ++i) {
+            size += varintSize(chunks[i].offset);
+            size += varintSize(chunks[i].length);
         }
 
         return size;
     }
 
     int encodeChunkReqTo(byte[] buffer, int offset, int length) {
-        throw new RuntimeException("TODO");
+        int size = headSize();
+        byte[] body;
+
+        if(!varint) {
+            body = new byte[count * 16];
+            int pos = 0;
+            for(int i = 0; i < count; ++i) {
+                pos += putLong(chunks[i].offset, body, pos);
+                pos += putLong(chunks[i].length, body, pos);
+            }
+        }
+        else {
+            body = new byte[varintChunkBodySize()];
+            int pos = 0;
+            for(int i = 0; i < count; ++i) {
+                pos += putVarint(chunks[i].offset, body, pos);
+                pos += putVarint(chunks[i].length, body, pos);
+            }
+        }
+
+        if(!deflate) {
+            size += body.length;
+            if(length < size)
+                return length - size;
+
+            buffer[offset++] = firstByte();
+            buffer[offset++] = (byte)size;
+            for(int id : ids)
+                offset += putInt(id, buffer, offset);
+
+            offset += putShort((short)body.length, buffer, offset);
+            System.arraycopy(body, 0, buffer, offset, body.length);
+
+            return size;
+        }
+        else {
+            if(deflater == null)
+                throw new IllegalStateException("deflater missing or closed");
+
+            if(length < size)
+                return 0;
+
+            int bufferSize = offset + length;
+
+            buffer[offset++] = firstByte();
+            buffer[offset++] = (byte)size;
+            for(int id : ids)
+                offset += putInt(id, buffer, offset);
+
+            int sizeOffset = offset;
+            offset += 2;
+
+            deflater.reset();
+            deflater.setInput(body);
+            deflater.deflate(buffer, offset, bufferSize - offset,
+                Deflater.SYNC_FLUSH);
+            if(!deflater.needsInput())
+                return 0;
+
+            long written = deflater.getBytesWritten();
+            if(written >= 0x10000)
+                throw new IllegalArgumentException(
+                    "compressed chunks exceed size limit 65536");
+
+            putShort((short)written, buffer, sizeOffset);
+            size += written;
+
+            return size;
+        }
     }
 
     int encodeDigestReqTo(byte[] buffer, int offset, int length) {
@@ -253,10 +327,8 @@ public class RequestFrameBuilder implements Closeable {
 
             buffer[offset++] = firstByte();
             buffer[offset++] = (byte)size;
-            for(int id : ids) {
-                putInt(id, buffer, offset);
-                offset += 4;
-            }
+            for(int id : ids)
+                offset += putInt(id, buffer, offset);
 
             putShort((short)0, buffer, offset);
 
@@ -275,15 +347,12 @@ public class RequestFrameBuilder implements Closeable {
 
             buffer[offset++] = firstByte();
             buffer[offset++] = (byte)size;
-            for(int id : ids) {
-                putInt(id, buffer, offset);
-                offset += 4;
-            }
+            for(int id : ids)
+                offset += putInt(id, buffer, offset);
 
-            putShort((short)body.length, buffer, offset);
-            offset += 2;
-
+            offset += putShort((short)body.length, buffer, offset);
             System.arraycopy(body, 0, buffer, offset, body.length);
+
             return size;
         }
         else {
@@ -297,10 +366,8 @@ public class RequestFrameBuilder implements Closeable {
 
             buffer[offset++] = firstByte();
             buffer[offset++] = (byte)size;
-            for(int id : ids) {
-                putInt(id, buffer, offset);
-                offset += 4;
-            }
+            for(int id : ids)
+                offset += putInt(id, buffer, offset);
 
             int sizeOffset = offset;
             offset += 2;
